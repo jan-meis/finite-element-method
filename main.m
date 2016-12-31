@@ -1,14 +1,11 @@
+%******   main   ******
+
 %clear command Window, variables and figures
 clc
 clear variables
 close all
 %add subfolders to PATH
 addpath(genpath(pwd))
-
-
-
-%******   main   ******%
-
 
 
 
