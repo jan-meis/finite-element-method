@@ -3,7 +3,7 @@ classdef Finite_element
     %K = Cell, P_K = local ansatz functions, S_K = unisolvant linear functionals
     
     properties
-        K
+        K = Cell_geometry();
         P_K
         S_K
     end

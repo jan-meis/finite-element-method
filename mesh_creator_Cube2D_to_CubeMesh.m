@@ -1,5 +1,5 @@
-function [ M ] = mesh_creator_Cube2D( D_Cube2D, n)
-%Takes a Domain_Cube2D object and divides it into n*n equally sized cubes.
+function [ M ] = mesh_creator_Cube2D_to_CubeMesh( D_Cube2D, n)
+%Takes a Domain_Cube2D object and divides it into (n-1)*(n-1) equally sized cubes.
 %Outputs a Mesh object
 
 M = Mesh();
