@@ -6,6 +6,7 @@ classdef Finite_element
         K = Cell_geometry();
         P_K
         S_K
+        local_ansatzfunction;
     end
     
     methods

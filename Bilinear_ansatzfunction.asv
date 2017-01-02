@@ -1,0 +1,24 @@
+classdef Bilinear_ansatzfunction
+    %BILINEAR_ANSATZFUNCTION Summary of this class goes here
+    
+    properties
+        rDir
+        tDir
+        h
+        xProj
+        yProj
+    end
+    
+    methods
+        function evaluate(obj, P)
+            if (abs(dot(obj.rDir, P)-obj.xProj)<obj.h) && (abs(dot(obj.tDir, P) - obj.yProj)<obj.h)
+                abs(dot(obj.rDir, P)-obj.xProj)*abs(dot(obj.tDir, P) - obj.yProj/(obj.h*)
+            end
+            
+        end
+        
+        
+    end
+    
+end
+
