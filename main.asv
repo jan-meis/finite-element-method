@@ -12,18 +12,12 @@ numOfSubintervals=10;
 h=1.0/numOfSubintervals;
 I=linspace(0.0, 1.0, numOfSubintervals+1);
 
-ansatzFunctions=BilinearAnsatzfunction.empty(numOfSubintervals*numOfSubintervals, 0);
+ansatzFunctions=BilinearAnsatzfunction.empty(numOfSubintervals*numOfSubintervals);
 for i = I(2:(length(I)-1))
     for j = I(2:(length(I)-1))
-        fun = BilinearAnsatzfunction();
-        fun.Px=j;
-        fun.Py=i;
-        fun.h=h;
-        ansatzFunctions(end+1)=fun;
+       ansatzFunctions(end+1)=BilinearAnsatzfunction()
     end
 end
-
-
 
 tic
 
