@@ -7,6 +7,7 @@ close all
 %add subfolders to PATH
 addpath(genpath(pwd))
 
+tic
 
 numOfSubintervals=10;
 h=1.0/numOfSubintervals;
@@ -23,9 +24,12 @@ for i = I(2:(length(I)-1))
     end
 end
 
+funhand = function_handler_gradtimesgrad();
+funhand.fun1=ansatzFunctions(1);
+funhand.fun2=ansatzFunctions(2);
 
 
-tic
+
 
 
 
