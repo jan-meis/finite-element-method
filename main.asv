@@ -64,19 +64,52 @@ end
 coefficients = b/A;
 
 
-solution = zeros(101, 101);
+solution = zeros(1001, 1001);
 
-for i = 0:100
-    for j = 0:100
+for i = 0:1000
+    for j = 0:1000
         tempSum=0.0;
-        for k = 1:length(ansatzFunctions)
-            tempSum=tempSum + coefficients(k)*ansatzFunctions(k).evaluate(i/100.0 , j/100.0);
+        for k = 1
+            tempSum=tempSum + ;
         end
-        solution(i+1, j+1) = tempSum;
     end
 end
 
-surf(solution);
+
+
+
+
+% A = zeros(length(functionHandlerArrayAnsatzIntrinsic), length(functionHandlerArrayAnsatzIntrinsic));
+% div = sqrt(length(functionHandlerArrayAnsatzIntrinsic));
+% for i = 0:(length(functionHandlerArrayAnsatzIntrinsic)-1)
+%     ix = rem(i, div);
+%     iy = fix(i, div);
+%     for j = 0:(length(functionHandlerArrayAnsatzIntrinsic)-1)
+%         jx = rem(j, div);
+%         jy = fix(j, div);
+%
+%         if (ix-1 == jx)
+%             if (iy -1 == jy)
+%                 A(i,j)=T2D()
+%             elseif (iy == jy)
+%
+%             elseif (iy +1 == jy)
+%
+%             else A(i,j)= 0;
+%             end
+%         elseif (ix == jx)
+%
+%         elseif (ix+1 == jx)
+%
+%         else
+%             A(i, j)=0;
+%         end
+%
+%
+%     end
+% end
+
+
 
 
 

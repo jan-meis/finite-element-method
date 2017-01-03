@@ -17,7 +17,7 @@ for i = x(2:length(x))
 end
 
 for i = y(2:length(y))
-    suma = suma + fun.evaluate(x(1), i;
+    suma = suma + fun.evaluate(x(1), i);
 end
 
 for i = y(2:length(y))
@@ -31,7 +31,7 @@ for i = x(2:(length(x)-1))
     end
 end
 
-ret = 0.25*h*k*(fun.evaluate(x(1), y(1)) + fun.evaluate(x(1), y(y(length(y)))) + fun.evaluate(x((length(x))), y(y(length(y)))) ...
+ret = 0.25*h*k*(fun.evaluate(x(1), y(1)) + fun.evaluate(x(1), y(length(y))) + fun.evaluate(x(length(x)), y(length(y))) ...
     + fun.evaluate(x((length(x))), y(1)) + 2*(suma + sumb + sumc + sumd) + 4*sumInside);
 end
 
