@@ -1,5 +1,5 @@
 classdef BilinearAnsatzfunction
-    %Has a midpoint (Px, Py) and 4 quadrants around it with sides of
+    %Has a midpoint (Px, Py) and 4 squares around it with sides of
     %length h
     
     
@@ -15,6 +15,7 @@ classdef BilinearAnsatzfunction
                     && ((obj.Py - obj.h) <= y) && (y < obj.Py))
                 erg = 1 + (x-obj.Px)/obj.h + (y - obj.Py)/obj.h + ...
                     (x - obj.Px)*(y - obj.Py)/(obj.h*obj.h);
+                
             elseif ((obj.Px <= x) && (x <= (obj.Px+obj.h)) ...
                     && ((obj.Py - obj.h) <= y) && (y < obj.Py))
                 erg = 1 - (x-obj.Px)/obj.h + (y - obj.Py)/obj.h - ...

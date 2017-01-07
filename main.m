@@ -61,7 +61,9 @@ for i = 1:length(ansatzFunctions)
     b(i) = T2D(handle, x, y);
 end
 
-coefficients = b/A;
+coefficients = transpose(transpose(b)\A);
+
+testcoeff = inv(A)*transpose(b);
 
 
 solution = zeros(101, 101);
@@ -76,7 +78,10 @@ for i = 0:100
     end
 end
 
-surf(solution);
+xAxis = linspace(0, 1, 101);
+yAxis = linspace(0, 1, 101);
+
+surf(xAxis, yAxis, solution);
 
 
 

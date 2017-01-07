@@ -1,5 +1,7 @@
 function [ ret ] = T2D( fun, x, y )
 %2D Trapezoid rule numerical integration on [a,b]x[c,d]
+%formula taken from: http://ktuce.ktu.edu.tr/~pehlivan/numerical_analysis/chap06/SimpsonsRule2D.pdf
+%implementation is my own
 
 h=x(length(x))-x(1);
 k=y(length(y))-y(1);
