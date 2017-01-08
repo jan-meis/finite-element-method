@@ -3,26 +3,29 @@ function [ ret ] = T2D( fun, x, y )
 %formula taken from: http://ktuce.ktu.edu.tr/~pehlivan/numerical_analysis/chap06/SimpsonsRule2D.pdf
 %implementation is my own
 
-h=x(length(x))-x(1);
-k=y(length(y))-y(1);
+
+
+
+h=x(2)-x(1);
+k=y(2)-y(1);
 suma=0.0;
 sumb=0.0;
 sumc=0.0;
 sumd=0.0;
 
-for i = x(2:length(x))
+for i = x(2:length(x)-1)
     sumc = sumc + fun.evaluate(i, y(1));
 end
 
-for i = x(2:length(x))
+for i = x(2:length(x)-1)
     sumd = sumd + fun.evaluate(i, y(length(y)));
 end
 
-for i = y(2:length(y))
+for i = y(2:length(y)-1)
     suma = suma + fun.evaluate(x(1), i);
 end
 
-for i = y(2:length(y))
+for i = y(2:length(y)-1)
     sumb = sumb + fun.evaluate(x(length(x)), i);
 end
 

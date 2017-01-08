@@ -17,6 +17,9 @@ classdef vectorfield
         function ret = gradient(obj)
             ret = obj.X.dx() + obj.Y.dy();
         end
+        function ret = mtimes(obj1, obj2)
+            ret = scalarfunction(wrapper_vectimesvec(obj1, obj2));
+        end
     end
     
 end

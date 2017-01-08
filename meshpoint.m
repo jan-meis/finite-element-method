@@ -6,10 +6,16 @@ classdef meshpoint
         x
         y
         isBoundaryPoint
-        IDs
+        domains
     end
     
     methods
+        function obj = meshpoint(x, y, isBoundaryPoint, domains)
+            obj.x=x;
+            obj.y=y;
+            obj.isBoundaryPoint = isBoundaryPoint;
+            obj.domains = domains;
+        end
     end
     
 end
