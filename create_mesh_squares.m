@@ -73,7 +73,7 @@ for j = 0:numSubintervals
             y3 = (j+1)*h;
             y4 = j*h;
             
-            ID = j*numSubintervals +i;
+            ID = j*numSubintervals + i-1;
             squares(end+1) = square(x1, x2, x3, x4, y1, y2, y3, y4, ID);
         end
         ret(end+1) = meshpoint(x, y, isBoundaryPoint, squares);

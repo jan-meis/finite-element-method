@@ -26,7 +26,11 @@ classdef square
             obj.ID=ID;
         end
         function ret = contains(obj, x, y)
-            if (obj.x1 <= x) && (x <= obj.x2) && (obj.y1 <= y) && (y <= obj.y4)
+            minx = min(obj.x1, obj.x3);
+            maxx = max(obj.x1, obj.x3);
+            miny = min(obj.y1, obj.y3);
+            maxy = max(obj.y1, obj.y3);
+            if (minx <= x) && (x <= maxx) && (miny <= y) && (y <= maxy)
                 ret = true;
             else
                 ret = false;
