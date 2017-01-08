@@ -1,4 +1,4 @@
-function [ output_args ] = create_shapefun_quadr( x1, x2, x3, x4, x5, x6, y1, y2, y3, y4, y5, y6, b1, b2, b3, b4, b5, b6, ID )
+function [ ret ] = create_shapefun_quadr( x1, x2, x3, x4, x5, x6, y1, y2, y3, y4, y5, y6, b1, b2, b3, b4, b5, b6, ID )
 %CREATE_SHAPEFUN_QUADR Summary of this function goes here
 
 
@@ -15,7 +15,7 @@ b = [b1; b2; b3; b4; b5; b6];
 c = A\b;
 
 poly = polynomial([c(1), c(3), c(6) ; c(2), c(5), NaN; c(4), NaN, NaN]);
-tri = triangle(x1, x2, x3, y1, y2, y3, ID);
+tri = triangle(x1, x3, x5, y1, y3, y5, ID);
 ret = shapefunction(poly, tri);
 end
 
