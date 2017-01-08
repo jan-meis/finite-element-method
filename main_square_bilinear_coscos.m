@@ -7,19 +7,20 @@ close all
 %add subfolders to PATH
 addpath(genpath(pwd))
 
-neumann = false; %dirichlet boundary conditions
-minMeshRefinement = 4;
-maxMeshRefinement = 4;
+neumann = true; %dirichlet boundary conditions
+minMeshRefinement = 1;
+maxMeshRefinement = 6;
 
 %calculate reference solution for comparison with approximate solutions
 referenceSolution = zeros(101);
 for i = 0:100
     for j = 0:100
-        referenceSolution(i+1, j+1) = exactSolution_sinsin(i/100.0, j/100.0);
+        referenceSolution(i+1, j+1) = exactSolution_coscos(i/100.0, j/100.0);
     end
 end
-%analytically integrated:
-referenceIntegral = 2 / pi^4;
+%analytically integrated as integral(abs(exactSolution_coscos)), note the
+%abs.
+referenceIntegral = 4/(pi^2+2*pi^4);
 
 alltime = tic;
 disp(['Starting computations for meshes with 1 to ' num2str(maxMeshRefinement) ' subdivisions:'])
@@ -35,7 +36,7 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     tic
     disp('Creating mesh...')
     %mesh configurations: square mesh with numSubintervals^2 squares
-    mesh = create_mesh_triangles(numSubintervals);
+    mesh = create_mesh_squares(numSubintervals);
     disp('mesh creation done!')
     toc
     
@@ -49,7 +50,7 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
         if (~p.isBoundaryPoint || neumann)
             shapefunctions = shapefunction.empty();
             for d = p.domains(1:end)
-                shapefunctions(end+1) = create_shapefun_linear(d.x1, d.x2, d.x3, d.y1, d.y2, d.y3, 1, 0, 0, d.ID);
+                shapefunctions(end+1) = create_shapefun_bilin(d.x1, d.x2, d.x3, d.x4, d.y1, d.y2, d.y3, d.y4, 1, 0, 0, 0, d.ID);
             end
             basisfunctions(end+1)=basisfunction(shapefunctions);
         end
@@ -69,13 +70,20 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
             phi_j = basisfunctions(j);
             aij=0;
             for shape_i = phi_i.shapefunctions(1:end)
+                poly_i = shape_i.poly;
                 grad_i = shape_i.poly.gradient();
                 for shape_j = phi_j.shapefunctions(1:end)
                     if (shape_i.domain == shape_j.domain)
+                        poly_j = shape_j.poly;
                         grad_j = shape_j.poly.gradient();
-                        fun = grad_i * grad_j;
-                        aij = aij + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
-                            shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
+                        funPoly = scalarfunction(wrapper_polytimespoly(poly_i, poly_j));
+                        funGrad = grad_i * grad_j;
+                        aij = aij + T2D(funGrad,...
+                            linspace(min(shape_i.domain.x1, shape_i.domain.x3), max(shape_i.domain.x1, shape_i.domain.x3), 15), ...
+                            linspace(min(shape_i.domain.y1, shape_i.domain.y3), max(shape_i.domain.y1, shape_i.domain.y3), 15))...
+                            + T2D(funPoly,...
+                            linspace(min(shape_i.domain.x1, shape_i.domain.x3), max(shape_i.domain.x1, shape_i.domain.x3), 15), ...
+                            linspace(min(shape_i.domain.y1, shape_i.domain.y3), max(shape_i.domain.y1, shape_i.domain.y3), 15));
                     end
                 end
             end
@@ -96,9 +104,10 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
         bi=0;
         
         for shape_i = phi_i.shapefunctions(1:end)
-            fun = scalarfunction(wrapper_polytimesfunc(shape_i.poly, @sinsin));
-            bi = bi + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
-                            shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
+            fun = scalarfunction(wrapper_polytimesfunc(shape_i.poly, @coscos));
+            bi = bi + T2D(fun,...
+                linspace(min(shape_i.domain.x1, shape_i.domain.x3), max(shape_i.domain.x1, shape_i.domain.x3), 15), ...
+                linspace(min(shape_i.domain.y1, shape_i.domain.y3), max(shape_i.domain.y1, shape_i.domain.y3), 15));
         end
         
         b(i) = bi;
@@ -145,15 +154,15 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     aposteriorierror=0;
     for phi = basisfunctions(1:end)
         for shape = phi.shapefunctions(1:end)
-            funK = scalarfunction(wrapper_squared(wrapper_polytimesfunc(shape.poly.laplace(), @sinsin)));
+            funK = scalarfunction(wrapper_squared(wrapper_polywrapper_polyplusfunc(shape.poly.laplace(), @sinsin)));
             ex1x2 = shape.domain.x2 - shape.domain.x1;
             ex2x3 = shape.domain.x3 - shape.domain.x2;
-            ex3x1 = shape.domain.x1 - shape.domain.x3;
-
+            ex3x4 = shape.domain.x4 - shape.domain.x3;
+            ex4x1 = shape.domain.x4 - shape.domain.x1;
             
             ey1y2 = shape.domain.y2 - shape.domain.y1;
             ey2y3 = shape.domain.y3 - shape.domain.y2;
-            ey3y1 = shape.domain.y4 - shape.domain.y3;
+            ey3y4 = shape.domain.y4 - shape.domain.y3;
             ey4y1 = shape.domain.y4 - shape.domain.y1;
             
             e12 = sqrt(ex1x2^2+ey1y2^2);

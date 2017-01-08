@@ -7,7 +7,7 @@ classdef wrapper_polyplusfunc
     end
     
     methods
-        function obj = wrapper_polytimesfunc(poly, fun)
+        function obj = wrapper_polyplusfunc(poly, fun)
            obj.poly=poly;
            obj.fun=fun;
         end

@@ -8,8 +8,8 @@ close all
 addpath(genpath(pwd))
 
 neumann = false; %dirichlet boundary conditions
-minMeshRefinement = 4;
-maxMeshRefinement = 4;
+minMeshRefinement = 1;
+maxMeshRefinement = 6;
 
 %calculate reference solution for comparison with approximate solutions
 referenceSolution = zeros(101);
@@ -145,7 +145,7 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     aposteriorierror=0;
     for phi = basisfunctions(1:end)
         for shape = phi.shapefunctions(1:end)
-            funK = scalarfunction(wrapper_squared(wrapper_polytimesfunc(shape.poly.laplace(), @sinsin)));
+            funK = scalarfunction(wrapper_squared(wrapper_polyplusfunc(shape.poly.laplace(), @sinsin)));
             ex1x2 = shape.domain.x2 - shape.domain.x1;
             ex2x3 = shape.domain.x3 - shape.domain.x2;
             ex3x1 = shape.domain.x1 - shape.domain.x3;
