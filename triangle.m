@@ -27,8 +27,8 @@ classdef triangle
             % Implementation is mine.
             
             Area = abs(obj.x1*(obj.y2 - obj.y3) + obj.x2 * (obj.y3 - obj.y1) + obj.x3 * (obj.y1 - obj.y2))/2.0;
-            xi = ((obj.y3-obj.y1)*(x-obj.x1) - (obj.x3-obj.x1)*(y-obj.y1))/(2.0*Area)
-            eta = (-(obj.y2-obj.y1)*(x-obj.x1)+(obj.x2-obj.x1)*(y-obj.y1))/(2.0*Area)
+            xi = ((obj.y3-obj.y1)*(x-obj.x1) - (obj.x3-obj.x1)*(y-obj.y1))/(2.0*Area);
+            eta = (-(obj.y2-obj.y1)*(x-obj.x1)+(obj.x2-obj.x1)*(y-obj.y1))/(2.0*Area);
             
             if (xi >= 0.0) && (eta >= 0.0) && ((1 -xi - eta) >= 0.0)
                 ret=true;

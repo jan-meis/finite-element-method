@@ -1,5 +1,0 @@
-function [ ret ] = exactSolutionsinsin( x, y )
-ret=sin(pi *x)*sin(pi *y);
-end
-
-
