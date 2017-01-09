@@ -104,15 +104,11 @@ classdef polynomial
         end
         
         function obj = integratedx(obj, x1, x2)
-            newXY = zeros(1, size(obj.XY, 2));
-            for i = 1:size(obj.XY, 2)
-                for j = 1:size(obj.XY, 1)
-                    if (~isnan(obj.XY(i, j)))
-                        
-                    end
-                end
-            end
+            
         end
+        
+        
+
     end
     
 end
