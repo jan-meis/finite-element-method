@@ -106,13 +106,31 @@ classdef polynomial
         function obj = integratedx(obj, x1, x2)
             newXY = zeros(1, size(obj.XY, 2));
             for i = 1:size(obj.XY, 2)
+                tempSum=0;
                 for j = 1:size(obj.XY, 1)
                     if (~isnan(obj.XY(i, j)))
-                        
+                        tempSum = tempSum + obj.XY(j, i)*(x2^(j+1) - x1^(j+1));
                     end
                 end
+                newXY(1, i) = tempSum;
             end
         end
+        function obj = integratedy(obj, y1, y2)
+            newXY = zeros(1, size(obj.XY, 2));
+            for i = 1:size(obj.XY, 1)
+                tempSum=0;
+                for j = 1:size(obj.XY, 2)
+                    if (~isnan(obj.XY(i, j)))
+                        tempSum = tempSum + obj.XY(i, j)*(y2^(j+1) - y1^(j+1));
+                    end
+                end
+                newXY(1, i) = tempSum;
+            end
+        end
+        function ret = integrate(obj, x1, x2, y1, y2)
+            ret = obj.integratedx(x1, x2).integratedy(y1, y2).evaluate(1, 1);
+        end
+        
     end
     
 end
