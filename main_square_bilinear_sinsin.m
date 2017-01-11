@@ -9,7 +9,7 @@ addpath(genpath(pwd))
 
 neumann = false; %dirichlet boundary conditions
 minMeshRefinement = 1;
-maxMeshRefinement = 10;
+maxMeshRefinement = 6;
 
 %calculate reference solution for comparison with approximate solutions
 referenceSolution = zeros(101);
