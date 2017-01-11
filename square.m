@@ -43,6 +43,9 @@ classdef square
                 ret=false;
             end
         end
+        function ret = points(obj)
+            ret = [obj.x1, obj.x2, obj.x3, obj.x4; obj.y1, obj.y2, obj.y3, obj.y4];
+        end
         
     end
     

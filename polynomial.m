@@ -109,11 +109,12 @@ classdef polynomial
                 tempSum=0;
                 for j = 1:size(obj.XY, 1)
                     if (~isnan(obj.XY(i, j)))
-                        tempSum = tempSum + obj.XY(j, i)*(x2^(j+1) - x1^(j+1));
+                        tempSum = tempSum + obj.XY(j, i)*(x2^(j) - x1^(j))/j;
                     end
                 end
                 newXY(1, i) = tempSum;
             end
+            obj = polynomial(newXY);
         end
         function obj = integratedy(obj, y1, y2)
             newXY = zeros(1, size(obj.XY, 2));
@@ -121,11 +122,12 @@ classdef polynomial
                 tempSum=0;
                 for j = 1:size(obj.XY, 2)
                     if (~isnan(obj.XY(i, j)))
-                        tempSum = tempSum + obj.XY(i, j)*(y2^(j+1) - y1^(j+1));
+                        tempSum = tempSum + obj.XY(i, j)*(y2^(j) - y1^(j))/j;
                     end
                 end
-                newXY(1, i) = tempSum;
+                newXY(i, 1) = tempSum;
             end
+            obj = polynomial(newXY);
         end
         function ret = integrate(obj, x1, x2, y1, y2)
             ret = obj.integratedx(x1, x2).integratedy(y1, y2).evaluate(1, 1);
