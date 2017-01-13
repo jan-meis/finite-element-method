@@ -30,6 +30,48 @@ tic
 disp('Loading mesh...')
 %mesh configurations: square mesh with numSubintervals^2 squares
 mesh = create_mesh_triangles_fromfile('custom_mesh.mesh');
+edges = edge.empty();
+for i = 1:size(mesh, 2)
+    p1 = mesh(i);
+    for j = i+1:size(mesh, 2)
+        p2 = mesh(j);
+        ids=[];
+        for d1=p1.domains(1:end)
+            for d2 = p2.domains(1:end)
+                if (d1 == d2)
+                    ids(end+1) = d1.ID;
+                end
+                if (size(ids, 2) ==2)
+                    edges(end+1) = edge(p1.x, p2.x, p1.y, p2.y, ids(1), ids(2));
+                end
+            end
+        end
+    end
+end
+maxID=0;
+for p = mesh(1:end)
+    for d = p.domains(1:end)
+        maxID = max(maxID, d.ID);
+    end
+end
+faces = triangle.empty(maxID+1, 0);
+for i = 0:maxID
+    loopctrl=false;
+    for p = mesh(1:end)
+        for d = p.domains(1:end)
+            if (d.ID==i)
+                faces(end+1) = triangle(d.x1, d.x2, d.x3, d.y1, d.y2, d.y3, i);
+                loopctrl=true;
+            end
+            if (loopctrl)
+                break;
+            end
+        end
+        if (loopctrl)
+            break;
+        end
+    end
+end
 disp('mesh loading done!')
 toc
 
@@ -133,88 +175,79 @@ end
 disp('finished evaluating solution function')
 toc
 
-disp(' ')
-
-tic
-disp('Calculating a posteriori error estimate with error estimator eta (page 290 in Grossmann & Roos)...')
-%calculate a posteriori error estimate
-%Disclaimer: this is actually really stupid because the laplace of a
-%bilinear function is 0, so only the edge integrals over the edges
-%contribute something.
-aposteriorierror=0;
-for phi = basisfunctions(1:end)
-    for shape = phi.shapefunctions(1:end)
-        funK = scalarfunction(wrapper_squared(wrapper_polyplusfunc(shape.poly.laplace(), @sinsin)));
-        ex1x2 = shape.domain.x2 - shape.domain.x1;
-        ex2x3 = shape.domain.x3 - shape.domain.x2;
-        ex3x1 = shape.domain.x1 - shape.domain.x3;
-        
-        
-        ey1y2 = shape.domain.y2 - shape.domain.y1;
-        ey2y3 = shape.domain.y3 - shape.domain.y2;
-        ey3y1 = shape.domain.y1 - shape.domain.y3;
-        
-        
-        e12 = sqrt(ex1x2^2+ey1y2^2);
-        e23 = sqrt(ex2x3^2+ey2y3^2);
-        e31 = sqrt(ex3x1^2+ey3y1^2);
-        
-        diamK = max(max(e12, e23), e31);
-        
-        resK = diamK^2 * G2D(funK ,shape.domain.x1, shape.domain.x2, shape.domain.x3, ...
-            shape.domain.y1, shape.domain.y2, shape.domain.y3);
-        
-        
-        conste12x = constantfunction(-ey1y2);
-        conste12y = constantfunction(ex1x2);
-        vec12 = vectorfield(conste12x, conste12y);
-        funE1 = scalarfunction(wrapper_squared(shape.poly.gradient() * vec12));
-        
-        conste23x = constantfunction(-ey2y3);
-        conste23y = constantfunction(ex2x3);
-        vec23 = vectorfield(conste23x, conste23y);
-        funE2 = scalarfunction(wrapper_squared(shape.poly.gradient() * vec23));
-        
-        conste31x = constantfunction(-ey3y1);
-        conste31y = constantfunction(ex3x1);
-        vec31 = vectorfield(conste31x, conste31y);
-        funE3 = scalarfunction(wrapper_squared(shape.poly.gradient() * vec31));
-        
-        
-        resE = (1.0/2.0)*(...
-            e12*T1D(funE1, linspace(shape.domain.x1, shape.domain.x2, 10), linspace(shape.domain.y1, shape.domain.y2, 15))...
-            + e23*T1D(funE2, linspace(shape.domain.x2, shape.domain.x3, 10), linspace(shape.domain.y2, shape.domain.y3, 15))...
-            + e31*T1D(funE3, linspace(shape.domain.x3, shape.domain.x1, 10), linspace(shape.domain.y3, shape.domain.y1, 15)));
-        
-        aposteriorierror = aposteriorierror + resE + resK;
+    disp(' ')
+    
+    tic
+    disp('Calculating a posteriori error estimate with error estimator eta (page 290 in Grossmann & Roos)...')
+    %calculate a posteriori error estimate
+    facefunctions = polynomial.empty(maxID, 0);
+    for i = 0:maxID
+        poly = polynomial(0);
+        for j = 1:size(basisfunctions, 2)
+            phi = basisfunctions(j);
+            for shape = phi.shapefunctions(1:end)
+                if (shape.domain.ID == i)
+                    poly = poly + polynomial(coefficients(j) * shape.poly.XY);
+                end
+            end
+        end
+        facefunctions(end+1) = poly;
     end
-end
-aposteriorierror = sqrt(aposteriorierror);
-disp(['finished calculating a posteriori error estimate: ' num2str(aposteriorierror)]);
-toc
-
-disp(' ')
-
-
-tic
-disp('Calculating absolute and relative error on 101x101 Grid with 2D composite trapezoid rule...')
-%calc absolute error
-abserrormat = abs(solution - referenceSolution);
-abserrormat(2:end-1, :) = 2*abserrormat(2:end-1, :);
-abserrormat(:, 2:end-1) = 2*abserrormat(:, 2:end-1);
-abserror = 0.0;
-for i = 0:100
-    for j = 0:100
-        abserror = abserror + abserrormat(i+1, j+1);
+    
+    edgegradients = vectorfield.empty(size(edges, 2), 0);
+    for currentEdge = edges(1:end)
+        pol = facefunctions(currentEdge.id1 +1) - facefunctions(currentEdge.id2 +1);
+        edgegradients(end+1) = pol.gradient();
     end
-end
-abserror = abserror * 0.25 * (1/100.0)^2;
-relerror = abserror / referenceIntegral;
-disp(['finished calculating absolute error: ' num2str(abserror)])
-disp(['finished calculating relative error: ' num2str(relerror)])
-toc
-
-disp(' ')
+    edgeTerm = 0;
+    for i = 1:size(edges, 2)
+        currentEdge = edges(i);
+        edgegrad = edgegradients(i);
+        normvec = vectorfield(constantfunction(-currentEdge.y1 + currentEdge.y2 ), constantfunction(currentEdge.x1 - currentEdge.x2));
+        fun = scalarfunction(wrapper_squared(wrapper_vectimesvec(edgegrad, normvec)));
+        edgeContrib = sqrt((currentEdge.x1- currentEdge.x2)^2 + (currentEdge.y1 - currentEdge.y2)^2)*T1D(fun, linspace(currentEdge.x1, currentEdge.x2, 15), linspace(currentEdge.y1, currentEdge.y2, 15));
+        edgeTerm = edgeTerm + edgeContrib;
+    end
+    edgeTerm = edgeTerm/2;
+    
+    faceTerm =0;
+    for i = 1:size(faces, 2)
+        face = faces(i);
+        facefun = facefunctions(i);
+        e1 = (face.x1 - face.x2)^2 + (face.y1 - face.y2)^2;
+        e2 = (face.x2 - face.x3)^2 + (face.y2 - face.y3)^2;
+        e3 = (face.x3 - face.x1)^2 + (face.y3 - face.y1)^2;
+        diamSquared = max(max(e1, e2), e3);
+        fun = wrapper_squared(wrapper_polyplusfunc(facefun.laplace(), @sinsin));
+        faceContrib = diamSquared * G2D(fun, face.x1, face.x2, face.x3, face.y1, face.y2, face.y3);
+        faceTerm = faceTerm + faceContrib;
+    end
+    aposteriorierror = sqrt(edgeTerm + faceTerm);
+    disp(['finished calculating a posteriori error estimate: ' num2str(aposteriorierror)]);
+    toc
+    
+    disp(' ')
+    
+    tic
+    disp('Calculating absolute and relative error on 101x101 Grid with 2D composite trapezoid rule...')
+    %calc absolute error
+    abserrormat = abs(solution - referenceSolution);
+    abserrormat(2:end-1, :) = 2*abserrormat(2:end-1, :);
+    abserrormat(:, 2:end-1) = 2*abserrormat(:, 2:end-1);
+    abserror = 0.0;
+    for i = 0:100
+        for j = 0:100
+            abserror = abserror + abserrormat(i+1, j+1);
+        end
+    end
+    abserror = abserror * 0.25 * (1/100.0)^2;
+    relerror = abserror / referenceIntegral;
+    disp(['finished calculating maximum absolute errors: ' num2str(max(max(abserrormat)))])
+    disp(['finished calculating average absolute error: ' num2str(abserror)])
+    disp(['finished calculating relative error in L2 norm: ' num2str(relerror)])
+    toc
+    
+    disp(' ')
 
 
 
