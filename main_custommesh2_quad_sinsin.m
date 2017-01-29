@@ -8,8 +8,8 @@ close all
 addpath(genpath(pwd))
 
 neumann = false; %dirichlet boundary conditions
-minMeshRefinement = 4;
-maxMeshRefinement = 4;
+minMeshNumber = 1;
+maxMeshNumber = 6;
 
 %calculate reference solution for comparison with approximate solutions
 referenceSolution = zeros(101);
@@ -21,21 +21,25 @@ end
 %analytically integrated:
 referenceIntegral = 2 / pi^4;
 
+
 alltime = tic;
-disp(['Starting computations for meshes with 1 to ' num2str(maxMeshRefinement) ' subdivisions:'])
+disp(['Starting computations for meshes nr ' num2str(minMeshNumber) ' to '  num2str(maxMeshNumber) ':'])
 disp(' ')
-for numSubintervals = minMeshRefinement:maxMeshRefinement
+for numSubintervals = minMeshNumber:maxMeshNumber
     
     starttime = tic;
     disp('****************************************************************************')
-    disp(['Starting compution for ' num2str(numSubintervals) ' subintervals:'])
+       disp(['Starting compution for mesh nr. ' num2str(numSubintervals) ':'])
     
     disp(' ')
     
     tic
-    disp('Creating mesh...')
+    disp('Loading mesh...')
     %mesh configurations: square mesh with numSubintervals^2 squares
-    mesh = create_mesh_squares(numSubintervals);
+    %mesh = create_mesh_triangles_fromfile('custom_mesh.mesh');
+    filenameNode = ['othersquare.' num2str(numSubintervals) '.node'];
+    filenameSquare = ['othersquare.' num2str(numSubintervals) '.ele'];
+    mesh = create_mesh_from_nodeelefile(filenameNode, filenameSquare);
     edges = edge.empty();
     for i = 1:size(mesh, 2)
         p1 = mesh(i);
@@ -60,13 +64,13 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
             maxID = max(maxID, d.ID);
         end
     end
-    faces = square.empty(maxID+1, 0);
+    faces = triangle.empty(maxID+1, 0);
     for i = 0:maxID
         loopctrl=false;
         for p = mesh(1:end)
             for d = p.domains(1:end)
                 if (d.ID==i)
-                    faces(end+1) = square(min(d.x1, d.x3),  max(d.x1, d.x3), max(d.x1, d.x3), min(d.x1, d.x3), min(d.y1, d.y3), min(d.y1, d.y3), max(d.y1, d.y3), max(d.y1, d.y3), i);
+                    faces(end+1) = triangle(d.x1, d.x2, d.x3, d.y1, d.y2, d.y3, i);
                     loopctrl=true;
                 end
                 if (loopctrl)
@@ -78,15 +82,8 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
             end
         end
     end
-    
-    disp('mesh creation done!')
+    disp('mesh loading done!')
     toc
-    
-    
-    
-    
-    
-    
     
     disp(' ')
     
@@ -98,7 +95,12 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
         if (~p.isBoundaryPoint || neumann)
             shapefunctions = shapefunction.empty();
             for d = p.domains(1:end)
-                shapefunctions(end+1) = create_shapefun_bilin(d.x1, d.x2, d.x3, d.x4, d.y1, d.y2, d.y3, d.y4, 1, 0, 0, 0, d.ID);
+                eval1=sinsin(d.x1, d.y1);
+                eval3=sinsin((d.x1+d.x2)/2,(d.y1+d.y2)/2 );
+                eval5 = sinsin((d.x3+d.x1)/2,(d.y3+d.y1)/2);
+                
+                shapefunctions(end+1) = create_shapefun_quadr(d.x1, (d.x1+d.x2)/2, d.x2, (d.x2+d.x3)/2,  d.x3, (d.x3+d.x1)/2,...
+                    d.y1, (d.y1+d.y2)/2, d.y2, (d.y2+d.y3)/2, d.y3, (d.y3+d.y1)/2, 1, 0.5*eval3/eval1, 0, 0, 0, 0.5*eval5/eval1, d.ID);
             end
             basisfunctions(end+1)=basisfunction(shapefunctions);
         end
@@ -123,9 +125,8 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
                     if (shape_i.domain == shape_j.domain)
                         grad_j = shape_j.poly.gradient();
                         fun = grad_i * grad_j;
-                        aij = aij + T2D(fun,...
-                            linspace(min(shape_i.domain.x1, shape_i.domain.x3), max(shape_i.domain.x1, shape_i.domain.x3), 15), ...
-                            linspace(min(shape_i.domain.y1, shape_i.domain.y3), max(shape_i.domain.y1, shape_i.domain.y3), 15));
+                        aij = aij + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
+                            shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
                     end
                 end
             end
@@ -147,9 +148,8 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
         
         for shape_i = phi_i.shapefunctions(1:end)
             fun = scalarfunction(wrapper_polytimesfunc(shape_i.poly, @sinsin));
-            bi = bi + T2D(fun,...
-                linspace(min(shape_i.domain.x1, shape_i.domain.x3), max(shape_i.domain.x1, shape_i.domain.x3), 15), ...
-                linspace(min(shape_i.domain.y1, shape_i.domain.y3), max(shape_i.domain.y1, shape_i.domain.y3), 15));
+            bi = bi + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
+                shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
         end
         
         b(i) = bi;
@@ -167,33 +167,6 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     toc
     
     disp(' ')
-    
-    
-    
-    facefunctions = polynomial.empty(maxID, 0);
-    for i = 0:maxID
-        poly = polynomial(0);
-        for j = 1:size(basisfunctions, 2)
-            phi = basisfunctions(j);
-            for shape = phi.shapefunctions(1:end)
-                if (shape.domain.ID == i)
-                    poly = poly + polynomial(coefficients(j) * shape.poly.XY);
-                end
-            end
-        end
-        facefunctions(end+1) = poly;
-    end
-    
-   edgegradients = vectorfield.empty(size(edges, 2), 0);
-   for edge = edges(1:end)
-       pol = facefunctions(edge.id1 +1) - facefunctions(edge.id2 +1);
-       edgegradients(end+1) = pol.gradient();
-   end
-    
-    
-    
-    
-    
     
     
     tic
@@ -217,14 +190,32 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     tic
     disp('Calculating a posteriori error estimate with error estimator eta (page 290 in Grossmann & Roos)...')
     %calculate a posteriori error estimate
+    facefunctions = polynomial.empty(maxID, 0);
+    for i = 0:maxID
+        poly = polynomial(0);
+        for j = 1:size(basisfunctions, 2)
+            phi = basisfunctions(j);
+            for shape = phi.shapefunctions(1:end)
+                if (shape.domain.ID == i)
+                    poly = poly + polynomial(coefficients(j) * shape.poly.XY);
+                end
+            end
+        end
+        facefunctions(end+1) = poly;
+    end
     
+    edgegradients = vectorfield.empty(size(edges, 2), 0);
+    for currentEdge = edges(1:end)
+        pol = facefunctions(currentEdge.id1 +1) - facefunctions(currentEdge.id2 +1);
+        edgegradients(end+1) = pol.gradient();
+    end
     edgeTerm = 0;
     for i = 1:size(edges, 2)
-        edge = edges(i);
+        currentEdge = edges(i);
         edgegrad = edgegradients(i);
-        normvec = vectorfield(constantfunction(-edge.y1 + edge.y2 ), constantfunction(edge.x1 - edge.x2));
+        normvec = vectorfield(constantfunction(-currentEdge.y1 + currentEdge.y2 ), constantfunction(currentEdge.x1 - currentEdge.x2));
         fun = scalarfunction(wrapper_squared(wrapper_vectimesvec(edgegrad, normvec)));
-        edgeContrib = sqrt((edge.x1- edge.x2)^2 + (edge.y1 - edge.y2)^2)*T1D(fun, linspace(edge.x1, edge.x2, 15), linspace(edge.y1, edge.y2, 15));
+        edgeContrib = sqrt((currentEdge.x1- currentEdge.x2)^2 + (currentEdge.y1 - currentEdge.y2)^2)*T1D(fun, linspace(currentEdge.x1, currentEdge.x2, 15), linspace(currentEdge.y1, currentEdge.y2, 15));
         edgeTerm = edgeTerm + edgeContrib;
     end
     edgeTerm = edgeTerm/2;
@@ -233,72 +224,19 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     for i = 1:size(faces, 2)
         face = faces(i);
         facefun = facefunctions(i);
-        diam = sqrt(face.x1 _ )
+        e1 = (face.x1 - face.x2)^2 + (face.y1 - face.y2)^2;
+        e2 = (face.x2 - face.x3)^2 + (face.y2 - face.y3)^2;
+        e3 = (face.x3 - face.x1)^2 + (face.y3 - face.y1)^2;
+        diamSquared = max(max(e1, e2), e3);
+        fun = wrapper_squared(wrapper_polyplusfunc(facefun.laplace(), @sinsin));
+        faceContrib = diamSquared * G2D(fun, face.x1, face.x2, face.x3, face.y1, face.y2, face.y3);
+        faceTerm = faceTerm + faceContrib;
     end
-    
-    
-    
-    aposteriorierror=0;
-    for phi = basisfunctions(1:end)
-        for shape = phi.shapefunctions(1:end)
-            funK = scalarfunction(wrapper_squared(wrapper_polyplusfunc(shape.poly.laplace() + shape.poly, @sinsin)));
-            ex1x2 = shape.domain.x2 - shape.domain.x1;
-            ex2x3 = shape.domain.x3 - shape.domain.x2;
-            ex3x4 = shape.domain.x4 - shape.domain.x3;
-            ex4x1 = shape.domain.x4 - shape.domain.x1;
-            
-            ey1y2 = shape.domain.y2 - shape.domain.y1;
-            ey2y3 = shape.domain.y3 - shape.domain.y2;
-            ey3y4 = shape.domain.y4 - shape.domain.y3;
-            ey4y1 = shape.domain.y4 - shape.domain.y1;
-            
-            e12 = sqrt(ex1x2^2+ey1y2^2);
-            e23 = sqrt(ex2x3^2+ey2y3^2);
-            e34 = sqrt(ex3x4^2+ey3y4^2);
-            e41 = sqrt(ex4x1^2+ey4y1^2);
-            
-            diamK = max(max(e12, e23), max( e34, e41));
-            
-            resK = diamK^2 * T2D(funK,...
-                linspace(min(shape.domain.x1, shape.domain.x3), max(shape.domain.x1, shape.domain.x3), 15), ...
-                linspace(min(shape.domain.y1, shape.domain.y3), max(shape.domain.y1, shape.domain.y3), 15));
-            
-            
-            conste12x = constantfunction(-ey1y2);
-            conste12y = constantfunction(ex1x2);
-            vec12 = vectorfield(conste12x, conste12y);
-            funE1 = scalarfunction(wrapper_squared(shape.poly.gradient() * vec12));
-            
-            conste23x = constantfunction(-ey2y3);
-            conste23y = constantfunction(ex2x3);
-            vec23 = vectorfield(conste23x, conste23y);
-            funE2 = scalarfunction(wrapper_squared(shape.poly.gradient() * vec23));
-            
-            conste34x = constantfunction(-ey3y4);
-            conste34y = constantfunction(ex3x4);
-            vec34 = vectorfield(conste34x, conste34y);
-            funE3 = scalarfunction(wrapper_squared(shape.poly.gradient() * vec34));
-            
-            conste41x = constantfunction(-ey4y1);
-            conste41y = constantfunction(ex4x1);
-            vec41 = vectorfield(conste41x, conste41y);
-            funE4 = scalarfunction(wrapper_squared(shape.poly.gradient() * vec41));
-            
-            resE = (1.0/2.0)*(...
-                e12*T1D(funE1, linspace(shape.domain.x1, shape.domain.x2, 10), linspace(shape.domain.y1, shape.domain.y2, 15))...
-                + e23*T1D(funE2, linspace(shape.domain.x2, shape.domain.x3, 10), linspace(shape.domain.y2, shape.domain.y3, 15))...
-                + e34*T1D(funE3, linspace(shape.domain.x3, shape.domain.x4, 10), linspace(shape.domain.y3, shape.domain.y4, 15))...
-                + e41*T1D(funE4, linspace(shape.domain.x4, shape.domain.x1, 10), linspace(shape.domain.y4, shape.domain.y1, 15))...
-                );
-            aposteriorierror = aposteriorierror + resE + resK;
-        end
-    end
-    aposteriorierror = sqrt(aposteriorierror);
+    aposteriorierror = sqrt(edgeTerm + faceTerm);
     disp(['finished calculating a posteriori error estimate: ' num2str(aposteriorierror)]);
     toc
     
     disp(' ')
-    
     
     tic
     disp('Calculating absolute and relative error on 101x101 Grid with 2D composite trapezoid rule...')
@@ -314,8 +252,9 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     end
     abserror = abserror * 0.25 * (1/100.0)^2;
     relerror = abserror / referenceIntegral;
-    disp(['finished calculating absolute error: ' num2str(abserror)])
-    disp(['finished calculating relative error: ' num2str(relerror)])
+    disp(['finished calculating maximum absolute errors: ' num2str(max(max(abserrormat)))])
+    disp(['finished calculating average absolute error: ' num2str(abserror)])
+    disp(['finished calculating relative error in L2 norm: ' num2str(relerror)])
     toc
     
     disp(' ')
@@ -328,18 +267,19 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     %draw
     xAxis = linspace(0, 1, 101);
     yAxis = linspace(0, 1, 101);
-    figure('Name',['Solution plot for ' num2str(numSubintervals) ' subintervals'] , 'NumberTitle','off');
+    figure('Name',['Solution plot for mesh nr. ' num2str(numSubintervals)] , 'NumberTitle','off');
     surf(xAxis, yAxis, solution);
     disp('finished visualizing solution!')
     toc
     
     disp(' ')
     
-    disp(['Computation for ' num2str(numSubintervals) ' finished!'])
+    disp(['Computation for mesh nr. ' num2str(numSubintervals) ' finished!'])
     toc(starttime)
     disp('****************************************************************************')
 end
 disp(' ')
 disp('everything finished!')
 toc(alltime)
+
 

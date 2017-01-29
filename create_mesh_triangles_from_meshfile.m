@@ -1,4 +1,4 @@
-function [ ret ] = create_mesh_triangles_fromfile( filename )
+function [ ret ] = create_mesh_triangles_from_meshfile( filename )
 %creates a triangle mesh from a .mesh file (see README)
 ints = cell2mat(textscan(fopen(filename), '%d' ));
 floats = fscanf(fopen(filename), '%f' );

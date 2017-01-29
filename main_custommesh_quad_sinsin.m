@@ -8,6 +8,8 @@ close all
 addpath(genpath(pwd))
 
 neumann = false; %dirichlet boundary conditions
+minMeshNumber = 1;
+maxMeshNumber = 6;
 
 %calculate reference solution for comparison with approximate solutions
 referenceSolution = zeros(101);
@@ -20,161 +22,169 @@ end
 referenceIntegral = 2 / pi^4;
 
 
-starttime = tic;
-disp('****************************************************************************')
-disp('Starting compution')
-
+alltime = tic;
+disp(['Starting computations for meshes nr ' num2str(minMeshNumber) ' to '  num2str(maxMeshNumber) ':'])
 disp(' ')
-
-tic
-disp('Loading mesh...')
-%mesh configurations: square mesh with numSubintervals^2 squares
-mesh = create_mesh_triangles_fromfile('custom_mesh.mesh');
-edges = edge.empty();
-for i = 1:size(mesh, 2)
-    p1 = mesh(i);
-    for j = i+1:size(mesh, 2)
-        p2 = mesh(j);
-        ids=[];
-        for d1=p1.domains(1:end)
-            for d2 = p2.domains(1:end)
-                if (d1 == d2)
-                    ids(end+1) = d1.ID;
-                end
-                if (size(ids, 2) ==2)
-                    edges(end+1) = edge(p1.x, p2.x, p1.y, p2.y, ids(1), ids(2));
+for numSubintervals = minMeshNumber:maxMeshNumber
+    
+    starttime = tic;
+    disp('****************************************************************************')
+       disp(['Starting compution for mesh nr. ' num2str(numSubintervals) ':'])
+    
+    disp(' ')
+    
+    tic
+    disp('Loading mesh...')
+    %mesh configurations: square mesh with numSubintervals^2 squares
+    %mesh = create_mesh_triangles_fromfile('custom_mesh.mesh');
+    filenameNode = ['square.' num2str(numSubintervals) '.node'];
+    filenameSquare = ['square.' num2str(numSubintervals) '.ele'];
+    mesh = create_mesh_from_nodeelefile(filenameNode, filenameSquare);
+    edges = edge.empty();
+    for i = 1:size(mesh, 2)
+        p1 = mesh(i);
+        for j = i+1:size(mesh, 2)
+            p2 = mesh(j);
+            ids=[];
+            for d1=p1.domains(1:end)
+                for d2 = p2.domains(1:end)
+                    if (d1 == d2)
+                        ids(end+1) = d1.ID;
+                    end
+                    if (size(ids, 2) ==2)
+                        edges(end+1) = edge(p1.x, p2.x, p1.y, p2.y, ids(1), ids(2));
+                    end
                 end
             end
         end
     end
-end
-maxID=0;
-for p = mesh(1:end)
-    for d = p.domains(1:end)
-        maxID = max(maxID, d.ID);
-    end
-end
-faces = triangle.empty(maxID+1, 0);
-for i = 0:maxID
-    loopctrl=false;
+    maxID=0;
     for p = mesh(1:end)
         for d = p.domains(1:end)
-            if (d.ID==i)
-                faces(end+1) = triangle(d.x1, d.x2, d.x3, d.y1, d.y2, d.y3, i);
-                loopctrl=true;
+            maxID = max(maxID, d.ID);
+        end
+    end
+    faces = triangle.empty(maxID+1, 0);
+    for i = 0:maxID
+        loopctrl=false;
+        for p = mesh(1:end)
+            for d = p.domains(1:end)
+                if (d.ID==i)
+                    faces(end+1) = triangle(d.x1, d.x2, d.x3, d.y1, d.y2, d.y3, i);
+                    loopctrl=true;
+                end
+                if (loopctrl)
+                    break;
+                end
             end
             if (loopctrl)
                 break;
             end
         end
-        if (loopctrl)
-            break;
+    end
+    disp('mesh loading done!')
+    toc
+    
+    disp(' ')
+    
+    tic
+    disp('Creating basis functions...')
+    %create array of bilinear basisfunctions
+    basisfunctions = basisfunction.empty();
+    for p = mesh(1:end)
+        if (~p.isBoundaryPoint || neumann)
+            shapefunctions = shapefunction.empty();
+            for d = p.domains(1:end)
+                eval1=sinsin(d.x1, d.y1);
+                eval3=sinsin((d.x1+d.x2)/2,(d.y1+d.y2)/2 );
+                eval5 = sinsin((d.x3+d.x1)/2,(d.y3+d.y1)/2);
+                
+                shapefunctions(end+1) = create_shapefun_quadr(d.x1, (d.x1+d.x2)/2, d.x2, (d.x2+d.x3)/2,  d.x3, (d.x3+d.x1)/2,...
+                    d.y1, (d.y1+d.y2)/2, d.y2, (d.y2+d.y3)/2, d.y3, (d.y3+d.y1)/2, 1, 0.5*eval3/eval1, 0, 0, 0, 0.5*eval5/eval1, d.ID);
+            end
+            basisfunctions(end+1)=basisfunction(shapefunctions);
         end
     end
-end
-disp('mesh loading done!')
-toc
-
-disp(' ')
-
-tic
-disp('Creating basis functions...')
-%create array of bilinear basisfunctions
-basisfunctions = basisfunction.empty();
-for p = mesh(1:end)
-    if (~p.isBoundaryPoint || neumann)
-        shapefunctions = shapefunction.empty();
-        for d = p.domains(1:end)
-            eval1=sinsin(d.x1, d.y1);
-            eval3=sinsin((d.x1+d.x2)/2,(d.y1+d.y2)/2 );
-            eval5 = sinsin((d.x3+d.x1)/2,(d.y3+d.y1)/2);
-            
-            shapefunctions(end+1) = create_shapefun_quadr(d.x1, (d.x1+d.x2)/2, d.x2, (d.x2+d.x3)/2,  d.x3, (d.x3+d.x1)/2,...
-                d.y1, (d.y1+d.y2)/2, d.y2, (d.y2+d.y3)/2, d.y3, (d.y3+d.y1)/2, 1, 0.5*eval3/eval1, 0, 0, 0, 0.5*eval5/eval1, d.ID);
-        end
-        basisfunctions(end+1)=basisfunction(shapefunctions);
-    end
-end
-disp('finished creating basis functions!')
-toc
-
-disp(' ')
-
-tic
-disp('Assembling system matrix...')
-%assemble matrix
-A = zeros(size(basisfunctions, 2));
-for i = 1:size(basisfunctions, 2)
-    phi_i = basisfunctions(i);
-    for j = 1:size(basisfunctions, 2)
-        phi_j = basisfunctions(j);
-        aij=0;
-        for shape_i = phi_i.shapefunctions(1:end)
-            grad_i = shape_i.poly.gradient();
-            for shape_j = phi_j.shapefunctions(1:end)
-                if (shape_i.domain == shape_j.domain)
-                    grad_j = shape_j.poly.gradient();
-                    fun = grad_i * grad_j;
-                    aij = aij + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
-                        shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
+    disp('finished creating basis functions!')
+    toc
+    
+    disp(' ')
+    
+    tic
+    disp('Assembling system matrix...')
+    %assemble matrix
+    A = zeros(size(basisfunctions, 2));
+    for i = 1:size(basisfunctions, 2)
+        phi_i = basisfunctions(i);
+        for j = 1:size(basisfunctions, 2)
+            phi_j = basisfunctions(j);
+            aij=0;
+            for shape_i = phi_i.shapefunctions(1:end)
+                grad_i = shape_i.poly.gradient();
+                for shape_j = phi_j.shapefunctions(1:end)
+                    if (shape_i.domain == shape_j.domain)
+                        grad_j = shape_j.poly.gradient();
+                        fun = grad_i * grad_j;
+                        aij = aij + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
+                            shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
+                    end
                 end
             end
+            A(i, j) = aij;
         end
-        A(i, j) = aij;
     end
-end
-disp('finished assembling system matrix!')
-toc
-
-disp(' ')
-
-tic
-disp('Assembling right hand side...')
-%assemble right hand side
-b = zeros(size(basisfunctions, 2), 1);
-for i = 1:size(basisfunctions, 2)
-    phi_i = basisfunctions(i);
-    bi=0;
+    disp('finished assembling system matrix!')
+    toc
     
-    for shape_i = phi_i.shapefunctions(1:end)
-        fun = scalarfunction(wrapper_polytimesfunc(shape_i.poly, @sinsin));
-        bi = bi + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
-            shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
-    end
+    disp(' ')
     
-    b(i) = bi;
-end
-disp('finished assembling right hand side!')
-toc
-
-disp(' ')
-
-tic
-disp('Solving system of equations with CG solver...')
-%solve
-coefficients = CG_solver(A, b);
-disp('finished solving system of equations!')
-toc
-
-disp(' ')
-
-
-tic
-disp('Evaluating solution function on a 101x101 grid...')
-%evaluate
-solution = zeros(101, 101);
-for i = 0:100
-    for j = 0:100
-        tempSum=0.0;
-        for k = 1:length(basisfunctions)
-            tempSum = tempSum + coefficients(k) * basisfunctions(k).evaluate(i/100.0 , j/100.0);
+    tic
+    disp('Assembling right hand side...')
+    %assemble right hand side
+    b = zeros(size(basisfunctions, 2), 1);
+    for i = 1:size(basisfunctions, 2)
+        phi_i = basisfunctions(i);
+        bi=0;
+        
+        for shape_i = phi_i.shapefunctions(1:end)
+            fun = scalarfunction(wrapper_polytimesfunc(shape_i.poly, @sinsin));
+            bi = bi + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
+                shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
         end
-        solution(i+1, j+1) = tempSum;
+        
+        b(i) = bi;
     end
-end
-disp('finished evaluating solution function')
-toc
-
+    disp('finished assembling right hand side!')
+    toc
+    
+    disp(' ')
+    
+    tic
+    disp('Solving system of equations with CG solver...')
+    %solve
+    coefficients = CG_solver(A, b);
+    disp('finished solving system of equations!')
+    toc
+    
+    disp(' ')
+    
+    
+    tic
+    disp('Evaluating solution function on a 101x101 grid...')
+    %evaluate
+    solution = zeros(101, 101);
+    for i = 0:100
+        for j = 0:100
+            tempSum=0.0;
+            for k = 1:length(basisfunctions)
+                tempSum = tempSum + coefficients(k) * basisfunctions(k).evaluate(i/100.0 , j/100.0);
+            end
+            solution(i+1, j+1) = tempSum;
+        end
+    end
+    disp('finished evaluating solution function')
+    toc
+    
     disp(' ')
     
     tic
@@ -248,24 +258,28 @@ toc
     toc
     
     disp(' ')
-
-
-
-
-tic
-disp('Visualizing solution data...')
-%draw
-xAxis = linspace(0, 1, 101);
-yAxis = linspace(0, 1, 101);
-figure('Name',['Solution plot'] , 'NumberTitle','off');
-surf(xAxis, yAxis, solution);
-disp('finished visualizing solution!')
-toc
-
+    
+    
+    
+    
+    tic
+    disp('Visualizing solution data...')
+    %draw
+    xAxis = linspace(0, 1, 101);
+    yAxis = linspace(0, 1, 101);
+    figure('Name',['Solution plot for mesh nr. ' num2str(numSubintervals)] , 'NumberTitle','off');
+    surf(xAxis, yAxis, solution);
+    disp('finished visualizing solution!')
+    toc
+    
+    disp(' ')
+    
+    disp(['Computation for mesh nr. ' num2str(numSubintervals) ' finished!'])
+    toc(starttime)
+    disp('****************************************************************************')
+end
 disp(' ')
-
-disp(['Computation finished!'])
-toc(starttime)
-disp('****************************************************************************')
+disp('everything finished!')
+toc(alltime)
 
 
