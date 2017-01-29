@@ -96,8 +96,6 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
                 eval3= coscos((d.x1+d.x2)/2,(d.y1+d.y2)/2 );
                 eval5 = coscos((d.x3+d.x1)/2,(d.y3+d.y1)/2);
                 
-%                 shapefunctions(end+1) = create_shapefun_quadr(d.x1, (d.x1+d.x2)/2, d.x2, (d.x2+d.x3)/2,  d.x3, (d.x3+d.x1)/2,...
-%                     d.y1, (d.y1+d.y2)/2, d.y2, (d.y2+d.y3)/2, d.y3, (d.y3+d.y1)/2, 1, 0.5*eval3/eval1, 0, 0, 0, 0.5*eval5/eval1, d.ID);
                 shapefunctions(end+1) = create_shapefun_quadr(d.x1, (d.x1+d.x2)/2, d.x2, (d.x2+d.x3)/2,  d.x3, (d.x3+d.x1)/2,...
                     d.y1, (d.y1+d.y2)/2, d.y2, (d.y2+d.y3)/2, d.y3, (d.y3+d.y1)/2, eval1, 0.5*eval3, 0, 0, 0, 0.5*eval5, d.ID);
             end
@@ -240,9 +238,18 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     disp(' ')
     
     tic
-    disp('Calculating absolute and relative error on 101x101 Grid with 2D composite trapezoid rule...')
+    disp('Calculating absolute and relative error on 101x101 Grid...')
     %calc absolute error
     abserrormat = abs(solution - referenceSolution);
+    abserror = 0.0;
+    for i = 0:100
+        for j = 0:100
+            abserror = abserror + abserrormat(i+1, j+1);
+        end
+    end
+    abserror = abserror * (1.0/101)^2;
+    disp(['finished calculating maximum absolute errors: ' num2str(max(max(abserrormat)))])
+    disp(['finished calculating average absolute error: ' num2str(abserror)])
     abserrormat(2:end-1, :) = 2*abserrormat(2:end-1, :);
     abserrormat(:, 2:end-1) = 2*abserrormat(:, 2:end-1);
     abserror = 0.0;
@@ -253,9 +260,7 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     end
     abserror = abserror * 0.25 * (1/100.0)^2;
     relerror = abserror / referenceIntegral;
-    disp(['finished calculating maximum absolute errors: ' num2str(max(max(abserrormat)))])
-    disp(['finished calculating average absolute error: ' num2str(abserror)])
-    disp(['finished calculating relative error in L2 norm: ' num2str(relerror)])
+    disp(['finished calculating relative error in L2 norm with 2D composite trapezoid rule: ' num2str(relerror)])
     toc
     
     disp(' ')
