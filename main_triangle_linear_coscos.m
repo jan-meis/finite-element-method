@@ -112,12 +112,17 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
             phi_j = basisfunctions(j);
             aij=0;
             for shape_i = phi_i.shapefunctions(1:end)
+                poly_i = shape_i.poly;
                 grad_i = shape_i.poly.gradient();
                 for shape_j = phi_j.shapefunctions(1:end)
                     if (shape_i.domain == shape_j.domain)
+                        poly_j = shape_j.poly;
                         grad_j = shape_j.poly.gradient();
-                        fun = grad_i * grad_j;
-                        aij = aij + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
+                        funPoly = scalarfunction(wrapper_polytimespoly(poly_i, poly_j));
+                        funGrad = grad_i * grad_j;
+                        aij = aij + G2D(funPoly,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
+                            shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3) ...
+                            + G2D(funGrad,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
                             shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
                     end
                 end

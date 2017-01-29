@@ -36,7 +36,7 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     tic
     disp('Creating mesh...')
     %mesh configurations: square mesh with numSubintervals^2 squares
-    mesh = create_mesh_squares(numSubintervals);
+    mesh = create_mesh_triangles(numSubintervals);
     edges = edge.empty();
     for i = 1:size(mesh, 2)
         p1 = mesh(i);
@@ -92,7 +92,14 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
         if (~p.isBoundaryPoint || neumann)
             shapefunctions = shapefunction.empty();
             for d = p.domains(1:end)
-                shapefunctions(end+1) = create_shapefun_bilin(d.x1, d.x2, d.x3, d.x4, d.y1, d.y2, d.y3, d.y4, 1, 0, 0, 0, d.ID);
+                eval1= coscos(d.x1, d.y1);
+                eval3= coscos((d.x1+d.x2)/2,(d.y1+d.y2)/2 );
+                eval5 = coscos((d.x3+d.x1)/2,(d.y3+d.y1)/2);
+                
+%                 shapefunctions(end+1) = create_shapefun_quadr(d.x1, (d.x1+d.x2)/2, d.x2, (d.x2+d.x3)/2,  d.x3, (d.x3+d.x1)/2,...
+%                     d.y1, (d.y1+d.y2)/2, d.y2, (d.y2+d.y3)/2, d.y3, (d.y3+d.y1)/2, 1, 0.5*eval3/eval1, 0, 0, 0, 0.5*eval5/eval1, d.ID);
+                shapefunctions(end+1) = create_shapefun_quadr(d.x1, (d.x1+d.x2)/2, d.x2, (d.x2+d.x3)/2,  d.x3, (d.x3+d.x1)/2,...
+                    d.y1, (d.y1+d.y2)/2, d.y2, (d.y2+d.y3)/2, d.y3, (d.y3+d.y1)/2, eval1, 0.5*eval3, 0, 0, 0, 0.5*eval5, d.ID);
             end
             basisfunctions(end+1)=basisfunction(shapefunctions);
         end
@@ -120,12 +127,10 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
                         grad_j = shape_j.poly.gradient();
                         funPoly = scalarfunction(wrapper_polytimespoly(poly_i, poly_j));
                         funGrad = grad_i * grad_j;
-                        aij = aij + T2D(funGrad,...
-                            linspace(min(shape_i.domain.x1, shape_i.domain.x3), max(shape_i.domain.x1, shape_i.domain.x3), 15), ...
-                            linspace(min(shape_i.domain.y1, shape_i.domain.y3), max(shape_i.domain.y1, shape_i.domain.y3), 15))...
-                            + T2D(funPoly,...
-                            linspace(min(shape_i.domain.x1, shape_i.domain.x3), max(shape_i.domain.x1, shape_i.domain.x3), 15), ...
-                            linspace(min(shape_i.domain.y1, shape_i.domain.y3), max(shape_i.domain.y1, shape_i.domain.y3), 15));
+                        aij = aij + G2D(funPoly,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
+                            shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3) ...
+                            + G2D(funGrad,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
+                            shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
                     end
                 end
             end
@@ -147,9 +152,8 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
         
         for shape_i = phi_i.shapefunctions(1:end)
             fun = scalarfunction(wrapper_polytimesfunc(shape_i.poly, @coscos));
-            bi = bi + T2D(fun,...
-                linspace(min(shape_i.domain.x1, shape_i.domain.x3), max(shape_i.domain.x1, shape_i.domain.x3), 15), ...
-                linspace(min(shape_i.domain.y1, shape_i.domain.y3), max(shape_i.domain.y1, shape_i.domain.y3), 15));
+            bi = bi + G2D(fun,shape_i.domain.x1, shape_i.domain.x2, shape_i.domain.x3, ...
+                            shape_i.domain.y1, shape_i.domain.y2, shape_i.domain.y3);
         end
         
         b(i) = bi;
@@ -225,7 +229,7 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
         face = faces(i);
         facefun = facefunctions(i);
         diamSquared = (face.x1 - face.x3)^2 + (face.y1 - face.y3)^2;
-        fun = wrapper_squared(wrapper_polyplusfunc(facefun.laplace() - facefun, @coscos));
+        fun = wrapper_squared(wrapper_polyplusfunc(facefun.laplace(), @coscos));
         faceContrib = diamSquared * T2D(fun, linspace(face.x1, face.x3, 15), linspace(face.y1, face.y3, 15));
         faceTerm = faceTerm + faceContrib;
     end
@@ -256,6 +260,9 @@ for numSubintervals = minMeshRefinement:maxMeshRefinement
     
     disp(' ')
     
+    
+    
+    
     tic
     disp('Visualizing solution data...')
     %draw
@@ -275,4 +282,5 @@ end
 disp(' ')
 disp('everything finished!')
 toc(alltime)
+
 
